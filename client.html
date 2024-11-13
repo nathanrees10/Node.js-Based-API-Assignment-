@@ -1,0 +1,160 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Movie API Assignment 1</title>
+    <style>
+        /* Global styling */
+        * { box-sizing: border-box; font-family: Arial, sans-serif; margin: 0; padding: 0; }
+        body { display: flex; flex-direction: column; align-items: center; padding: 20px; background: #f8f9fa; color: #333; }
+        h2 { color: #333; margin-bottom: 20px; font-size: 1.8rem; }
+
+        /* Container styling */
+        .container { 
+            margin-bottom: 20px; padding: 20px; 
+            background: #ffffff; border-radius: 12px; box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1); 
+            width: 100%; max-width: 600px; 
+        }
+
+        /* Form and input styling */
+        form { display: flex; flex-direction: column; gap: 12px; }
+        input, button { padding: 12px; font-size: 1rem; border-radius: 5px; border: 1px solid #ddd; }
+        input:focus { outline: none; border-color: #007bff; }
+        button { background-color: #007bff; color: white; cursor: pointer; font-weight: bold; transition: background-color 0.3s; }
+        button:hover { background-color: #0056b3; }
+
+        /* Result styling */
+        .result { margin-top: 15px; padding: 20px; background: #f1f1f1; border-radius: 8px; font-size: 1rem; color: #333; white-space: pre-wrap; line-height: 1.6; }
+        .result h4 { color: #007bff; font-size: 1.2rem; margin-bottom: 10px; }
+        .result p { margin-bottom: 8px; }
+        .result img { max-width: 100%; border-radius: 8px; margin-top: 15px; box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1); }
+
+        /* Streaming availability styling */
+        .availability-item { margin-top: 10px; padding: 10px; background: #ffffff; border-radius: 6px; box-shadow: 0 2px 5px rgba(0, 0, 0, 0.1); }
+        .availability-item p { margin: 5px 0; font-size: 0.95rem; }
+        .availability-item a { color: #007bff; text-decoration: none; font-weight: bold; }
+        .availability-item a:hover { text-decoration: underline; }
+
+        /* Loader styling */
+        .loader { border: 4px solid #f3f3f3; border-radius: 50%; border-top: 4px solid #007bff; width: 24px; height: 24px; animation: spin 1s linear infinite; margin: 10px auto; }
+        @keyframes spin { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }
+    </style>
+</head>
+<body>
+    <h2>Movie API Assignment 1</h2>
+
+    <!-- Combined Movie Data and Streaming Availability Search -->
+    <div class="container">
+        <h3>Search Movie Data and Streaming Availability</h3>
+        <form id="movie-search-form">
+            <input type="text" id="movie-search" placeholder="Enter IMDb ID (e.g., tt1375666) or Title" required />
+            <button type="submit">Search</button>
+        </form>
+        <div id="movie-result" class="result"></div>
+    </div>
+
+    <!-- Upload Poster by IMDb ID -->
+    <div class="container">
+        <h3>Upload Movie Poster</h3>
+        <form id="poster-form" enctype="multipart/form-data">
+            <input type="text" id="poster-id" placeholder="Enter IMDb ID for Poster (e.g., tt1375666)" required />
+            <input type="file" id="poster-file" accept="image/*" required />
+            <button type="submit">Upload Poster</button>
+        </form>
+        <div id="poster-upload-result" class="result"></div>
+    </div>
+
+    <script>
+        const API_BASE_URL = 'http://localhost:5000';
+
+        function showLoader(targetId) {
+            document.getElementById(targetId).innerHTML = '<div class="loader"></div>';
+        }
+
+        // Search for combined movie data and streaming availability by IMDb ID or title
+        document.getElementById('movie-search-form').addEventListener('submit', async (event) => {
+            event.preventDefault();
+            showLoader('movie-result');
+            const searchValue = document.getElementById('movie-search').value;
+            const endpoint = `${API_BASE_URL}/movies/combined/${encodeURIComponent(searchValue)}`;
+
+            try {
+                const response = await fetch(endpoint);
+                if (!response.ok) throw new Error(`Server error: ${response.status} ${response.statusText}`);
+                
+                const data = await response.json();
+                let resultHtml = `<h4>Movie Details</h4>`;
+resultHtml += `<p><strong>Title:</strong> ${data.Title || 'N/A'}</p>`;
+resultHtml += `<p><strong>Year:</strong> ${data.Year || 'N/A'}</p>`;
+resultHtml += `<p><strong>Rated:</strong> ${data.Rated || 'N/A'}</p>`;
+resultHtml += `<p><strong>Released:</strong> ${data.Released || 'N/A'}</p>`;
+resultHtml += `<p><strong>Runtime:</strong> ${data.Runtime || 'N/A'}</p>`;
+resultHtml += `<p><strong>Genre:</strong> ${data.Genre || 'N/A'}</p>`;
+resultHtml += `<p><strong>Director:</strong> ${data.Director || 'N/A'}</p>`;
+resultHtml += `<p><strong>Writer:</strong> ${data.Writer || 'N/A'}</p>`;
+resultHtml += `<p><strong>Actors:</strong> ${data.Actors || 'N/A'}</p>`;
+resultHtml += `<p><strong>Plot:</strong> ${data.Plot || 'N/A'}</p>`;
+resultHtml += `<p><strong>Language:</strong> ${data.Language || 'N/A'}</p>`;
+resultHtml += `<p><strong>Country:</strong> ${data.Country || 'N/A'}</p>`;
+resultHtml += `<p><strong>Awards:</strong> ${data.Awards || 'N/A'}</p>`;
+resultHtml += `<p><strong>Box Office:</strong> ${data.BoxOffice || 'N/A'}</p>`;
+resultHtml += `<p><strong>IMDb Rating:</strong> ${data.imdbRating || 'N/A'}</p>`;
+resultHtml += `<p><strong>Metascore:</strong> ${data.Metascore || 'N/A'}</p>`;
+
+                if (data.Poster && data.Poster !== "N/A") {
+                    resultHtml += `<img src="${data.Poster}" alt="${data.Title} Poster">`;
+                } else {
+                    resultHtml += `<p>No poster available.</p>`;
+                }
+
+                resultHtml += `<h4>Streaming Availability</h4>`;
+if (data.streamingAvailability && data.streamingAvailability.length > 0) {
+    data.streamingAvailability.forEach((service, index) => {
+        resultHtml += `
+            <div class="availability-item">
+                <p><strong>Provider:</strong> ${service.provider}</p>
+                <p><strong>Transaction Type:</strong> ${service.transactionType}</p>
+                <p><strong>Quality:</strong> ${service.quality || 'Not specified'}</p>
+                <p><strong>Price:</strong> ${service.price}</p>
+                <p><strong>Link:</strong> <a href="${service.link}" target="_blank">Watch here</a></p>
+            </div>
+            ${index < data.streamingAvailability.length - 1 ? '<hr>' : ''} <!-- Line separator between providers -->
+        `;
+    });
+} else {
+    resultHtml += `<p>Streaming availability information not found.</p>`;
+}
+
+                document.getElementById('movie-result').innerHTML = resultHtml;
+            } catch (error) {
+                document.getElementById('movie-result').textContent = 'Error fetching movie data and streaming availability.';
+                console.error("Error fetching combined data:", error);
+            }
+        });
+
+        // Upload poster by IMDb ID
+        document.getElementById('poster-form').addEventListener('submit', async (event) => {
+            event.preventDefault();
+            showLoader('poster-upload-result');
+            const imdbId = document.getElementById('poster-id').value;
+            const file = document.getElementById('poster-file').files[0];
+            const formData = new FormData();
+            formData.append('file', file);
+            formData.append('imdb-id', imdbId);
+
+            try {
+                const response = await fetch(`${API_BASE_URL}/movies/poster/upload`, {
+                    method: 'POST',
+                    body: formData
+                });
+                const result = await response.json();
+                document.getElementById('poster-upload-result').textContent = JSON.stringify(result, null, 2);
+            } catch (error) {
+                document.getElementById('poster-upload-result').textContent = 'Error uploading poster.';
+                console.error("Error uploading poster:", error);
+            }
+        });
+    </script>
+</body>
+</html>
